@@ -159,20 +159,18 @@ def division(dividend, divisor):
     """
     :param dividend: A Bits object representing a polynomial to be divided by d, coefficients from Z2
     :param divisor: A Bits object representing a polynomial to act as the divisor, coefficients from Z2
-    :param irreducible_polynomial: The irreducible polynomial that was used to generate
-    the finite field, represented as a Bits object
     :return: A tuple containing a Bits object with the quotient and a Bits object
     with the remainder
     """
     divisor = copy.copy(divisor)
     #Crop both dividend and divisor so there are no 0 to the left
     for i in range(len(dividend)):
-        if dividend[i] == 0:
+        if dividend[0] == 0:
             dividend = dividend[1:]
         else:
             break
     for i in range(len(divisor)):
-        if divisor[i] == 0:
+        if divisor[0] == 0:
             divisor = divisor[1:]
         else:
             break
