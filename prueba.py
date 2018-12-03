@@ -17,12 +17,13 @@ def extended_euclidean(b, a):
                      BitArray(bin = "0b1")
     while a.int != 0:
         print("dividend", b.bin)
-        print("divisor", a)
+        print("divisor", a.bin)
         temp = a
-        q = BitArray(bin = bin(b.uint // a.uint))
-        a = BitArray(bin = bin(b.uint % a.uint))
-        print("quotient", q)
-        print("rem", a)
+        q,a = division(b,a)
+        #q = BitArray(bin = bin(b.uint // a.uint))
+        #a = BitArray(bin = bin(b.uint % a.uint))
+        print("quotient", q.bin)
+        print("rem", a.bin)
         b = temp
         x0, x1 = x1, add(x0, polynomial_product(q, x1))
         y0, y1 = y1, add(y0, polynomial_product(q, y1))
@@ -32,8 +33,8 @@ def extended_euclidean(b, a):
         print("y1", y1)
         #x0, x1 = x1, x0 - q * x1
         #y0, y1 = y1, y0 - q * y1
-    return b, x0, y0
+    return b.bin, x0.bin, y0.bin
 
 
-print(extended_euclidean(BitArray(hex = "0x03010102"),
+print(extended_euclidean(BitArray(bin = "0b00000011000000010000000100000010"),
                                  BitArray(bin = "0b10001")))
