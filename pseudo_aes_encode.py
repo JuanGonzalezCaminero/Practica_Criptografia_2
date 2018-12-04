@@ -5,44 +5,90 @@ import functools
 class Encoder:
     def __init__(self, key):
         self.key = key
+        if not self.check_key():
+            print("Invalid key")
+            exit()
 
-    # x = mulinv(b) mod n, (x * b) % n == 1
-    def mulinv(self, b, n):
-        g, x, _ = xgcd(b, n)
-        if g == 1:
-            return x % n
+    def check_key(self):
+        if(self.key_determinants_nonzero()):
+            if(
+                add(add(add(self.key[40:44], self.key[44:48]), self.key[48:52]), BitArray(bin = "0b0001")).int != 0
+                and
+                add(add(add(self.key[52:56], self.key[56:60]), self.key[60:64]), BitArray(bin = "0b0001")).int != 0
+            ):
+                print("Valid key")
+                return True
 
-    def extended_euclidean(self, b, a):
-        x0, x1, y0, y1 = BitArray(bin = "0b1"), BitArray(bin = "0b0"), BitArray(bin = "0b0"), BitArray(bin = "0b1")
-        #print(b.bin, a, x0, y0)
-        while a.int != 0:
-            q, a = division(b, a)
-            print("Quotient, rest",q, a)
-            b = a
-            print(x0, x1, y0, y1)
-            x0, x1 = x1, add(x0, polynomial_product(q, x1))
-            y0, y1 = y1, add(y0, polynomial_product(q, y1))
-            print(x0, x1, y0, y1)
-            #print(q, a, x0, y0)
-            #print("-----------")
-        return b, x0, y0
-
-    def xgcd(self, b, a):
-        x0, x1, y0, y1 = 1, 0, 0, 1
-        while a != 0:
-            q, b, a = b // a, a, b % a
-            x0, x1 = x1, x0 - q * x1
-            y0, y1 = y1, y0 - q * y1
-        return b, x0, y0
-
-    def get_inverse_polynomial(self, polynomial):
+    def key_determinants_nonzero(self):
         '''
-        Receives an n bit polynomial and returns it's inverse in the field generated
-        using the polynomial 10001 from F16
-        :param polynomial:
+        Matrix determinant using cofactors
         :return:
         '''
+        d_1 = self.matrix_determinant(self.key[0:16])
+        d_2 = self.matrix_determinant(self.key[20:36])
 
+        if d_1.int != 0 and d_2.int != 0:
+            return True
+
+    def matrix_determinant(self, matrix):
+        '''
+        :param matrix: a 16 bit array
+        :return:
+        '''
+        #Determinant using cofactors and the last  column
+        #I am probably taking a transposed version of the matrix, but the determinant is the same
+        c_1 = matrix[5:8] + matrix[9:12] + matrix[13:16]
+        c_2 = matrix[1:4] + matrix[9:12] + matrix[13:16]
+        c_3 = matrix[1:4] + matrix[5:8] + matrix[13:16]
+        c_4 = matrix[1:4] + matrix[5:8] + matrix[9:12]
+
+        #print()
+        #print(c_1)
+        #print(c_2)
+        #print(c_3)
+        #print(c_4)
+        #print()
+
+        irreducible_pol = BitArray(bin="0b10011")
+
+
+        #print(c_2[2:3],c_2[4:5], c_2[6:7])
+        #print(product_in_field(c_2[2:3], product_in_field(c_2[4:5], c_2[6:7], irreducible_pol), irreducible_pol))
+
+
+
+        cofactors = [c_1, c_2, c_3, c_4]
+
+        det = BitArray()
+
+        for c in cofactors:
+            #print()
+            #print(product_in_field(c[0:1], product_in_field(c[4:5], c[8:9], irreducible_pol), irreducible_pol))
+            #print(product_in_field(c[3:4], product_in_field(c[7:8], c[2:3], irreducible_pol),irreducible_pol))
+            #print(product_in_field(c[1:2], product_in_field(c[5:6], c[6:7], irreducible_pol),irreducible_pol))
+            #print(product_in_field(c[2:3], product_in_field(c[4:5], c[6:7], irreducible_pol), irreducible_pol))
+            #print(product_in_field(c[1:2], product_in_field(c[3:4], c[8:9], irreducible_pol), irreducible_pol))
+            #print(product_in_field(c[0:1], product_in_field(c[5:6], c[7:8], irreducible_pol), irreducible_pol))
+            #print()
+            det = \
+                add(det,
+                    add(
+                        (add(add(product_in_field(c[0:1], product_in_field(c[4:5], c[8:9], irreducible_pol),
+                                                  irreducible_pol),
+                                 product_in_field(c[3:4], product_in_field(c[7:8], c[2:3], irreducible_pol),
+                                                  irreducible_pol)),
+                             product_in_field(c[1:2], product_in_field(c[5:6], c[6:7], irreducible_pol),
+                                              irreducible_pol))),
+
+                        (add(add(product_in_field(c[2:3], product_in_field(c[4:5], c[6:7], irreducible_pol),
+                                                  irreducible_pol),
+                                 product_in_field(c[1:2], product_in_field(c[3:4], c[8:9], irreducible_pol),
+                                                  irreducible_pol)),
+                             product_in_field(c[0:1], product_in_field(c[5:6], c[7:8], irreducible_pol),
+                                              irreducible_pol)))))
+
+        #print("Det:", det)
+        return det
 
     def decode_chunk(self, chunk):
         #Invert the last Mix:
@@ -173,10 +219,6 @@ class Encoder:
         return result
 
 encoder = Encoder(BitArray(hex="0x94a55ae9b242a648"))
-
-
-print(encoder.extended_euclidean(BitArray(bin = "0b00000011000000010000000100000010"),
-                                 BitArray(bin = "0b10001")))
 
 print(encoder.encode_chunk(BitArray(hex = "0x1234123412341234")))
 

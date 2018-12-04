@@ -36,5 +36,5 @@ def extended_euclidean(b, a):
     return b.bin, x0.bin, y0.bin
 
 
-print(extended_euclidean(BitArray(bin = "0b00000011000000010000000100000010"),
-                                 BitArray(bin = "0b10001")))
+print(extended_euclidean(BitArray(bin = "0b101011"),
+                                 BitArray(bin = "0b101")))
