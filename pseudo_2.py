@@ -10,7 +10,7 @@ class Encoder:
             exit()
 
     def check_key(self):
-        if(self.key_determinants_nonzero()):
+        if self.key_determinants_nonzero():
             if(
                 add(add(add(self.key[40:44], self.key[44:48]), self.key[48:52]), BitArray(bin = "0b0001")).int != 0
                 and
@@ -37,39 +37,28 @@ class Encoder:
         '''
         #Determinant using cofactors and the last  column
         #I am probably taking a transposed version of the matrix, but the determinant is the same
-        c_1 = matrix[5:8] + matrix[9:12] + matrix[13:16]
-        c_2 = matrix[1:4] + matrix[9:12] + matrix[13:16]
-        c_3 = matrix[1:4] + matrix[5:8] + matrix[13:16]
-        c_4 = matrix[1:4] + matrix[5:8] + matrix[9:12]
+        c_1 = None
+        c_2 = None
+        c_3 = None
+        c_4 = None
+        if matrix[0]:
+            c_1 = matrix[5:8] + matrix[9:12] + matrix[13:16]
+        if matrix[4]:
+            c_2 = matrix[1:4] + matrix[9:12] + matrix[13:16]
+        if matrix[8]:
+            c_3 = matrix[1:4] + matrix[5:8] + matrix[13:16]
+        if matrix[12]:
+            c_4 = matrix[1:4] + matrix[5:8] + matrix[9:12]
 
-        #print()
-        #print(c_1)
-        #print(c_2)
-        #print(c_3)
-        #print(c_4)
-        #print()
+        cofactors = [c_1, c_2, c_3, c_4]
 
         irreducible_pol = BitArray(bin="0b10011")
 
-
-        #print(c_2[2:3],c_2[4:5], c_2[6:7])
-        #print(product_in_field(c_2[2:3], product_in_field(c_2[4:5], c_2[6:7], irreducible_pol), irreducible_pol))
-
-
-
-        cofactors = [c_1, c_2, c_3, c_4]
+        cofactors = [c for c in cofactors if c != None]
 
         det = BitArray()
 
         for c in cofactors:
-            #print()
-            #print(product_in_field(c[0:1], product_in_field(c[4:5], c[8:9], irreducible_pol), irreducible_pol))
-            #print(product_in_field(c[3:4], product_in_field(c[7:8], c[2:3], irreducible_pol),irreducible_pol))
-            #print(product_in_field(c[1:2], product_in_field(c[5:6], c[6:7], irreducible_pol),irreducible_pol))
-            #print(product_in_field(c[2:3], product_in_field(c[4:5], c[6:7], irreducible_pol), irreducible_pol))
-            #print(product_in_field(c[1:2], product_in_field(c[3:4], c[8:9], irreducible_pol), irreducible_pol))
-            #print(product_in_field(c[0:1], product_in_field(c[5:6], c[7:8], irreducible_pol), irreducible_pol))
-            #print()
             det = \
                 add(det,
                     add(
@@ -90,10 +79,6 @@ class Encoder:
         #print("Det:", det)
         return det
 
-    def decode_chunk(self, chunk):
-        #Invert the last Mix:
-        pass
-
     def encode_chunk(self, chunk):
         '''
         :param chunk: 16 elements to encode
@@ -103,22 +88,6 @@ class Encoder:
         #Taking the necessary matrix for the sub_bytes
         sub_bytes_matrix = BitArray()
         for i in range(4):
-            #sub_bytes_matrix.append(self.key[0 * 4 + 3: 0 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[1 * 4 + 3: 1 * 4 + 4])
-            ##sub_bytes_matrix.append(self.key[2 * 4 + 3: 2 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[3 * 4 + 3: 3 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[0 * 4 + 2: 0 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[1 * 4 + 2: 1 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[2 * 4 + 2: 2 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[3 * 4 + 2: 3 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[0 * 4 + 1: 0 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[1 * 4 + 1: 1 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[2 * 4 + 1: 2 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[3 * 4 + 1: 3 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[0 * 4 + 0: 0 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[1 * 4 + 0: 1 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[2 * 4 + 0: 2 * 4 + 4])
-            #sub_bytes_matrix.append(self.key[3 * 4 + 0: 3 * 4 + 4])
 
         print("Matrix:", sub_bytes_matrix)
         print(type(chunk[0 + 3: 0 + 4]))
@@ -196,23 +165,7 @@ class Encoder:
 
         return result
 
-    def row_mix(self, chunk, k0, k1, k2, k3):
-        irreducible_polynomial = BitArray(bin = "0b10001")
-        result = BitArray()
-        for i in range(4):
-            column = chunk[i * 4 * 4: i * 4 * 4 + 16]
-            #print("Column:", column)
-            for j in range(4):
-                products = [product_in_field(column[j * 4: j * 4 + 4], k0, irreducible_polynomial),
-                            product_in_field(column[j * 4: j * 4 + 4], k1, irreducible_polynomial),
-                            product_in_field(column[j * 4: j * 4 + 4], k2, irreducible_polynomial),
-                            product_in_field(column[j * 4: j * 4 + 4], k3, irreducible_polynomial)]
-                encoded_column = functools.reduce(lambda a,b : add(a, b), products)
-                result.append(encoded_column)
-        return result
-
-    #TODO: Cambiar esto para que el elemento del que se sacan sub bytes se coloque en orden inverso (en columna, el índice de mayor orden abajo)
-    def sub_bytes(self, hex_element, key_column, element_to_add):
+    def sub_bytes(self, hex_element, matrix, element_to_add):
         '''
         Takes a 4-bit group and performs a substitution multiplying with the
         matrix formed by the bits in key_column and adding element_to_add
@@ -223,7 +176,7 @@ class Encoder:
         '''
         result = BitArray()
         for i in range(4):
-            key_element = key_column[i * 4: i * 4 + 4]
+            key_element = matrix[i * 4: i * 4 + 4]
             result_element = BitArray(bin = "0b0")
 
             for j in range(4):
@@ -238,7 +191,6 @@ class Encoder:
 
         return result
 
+
 encoder = Encoder(BitArray(hex="0x94a55ae9b242a648"))
-
 print(encoder.encode_chunk(BitArray(hex = "0x1234123412341234")))
-
