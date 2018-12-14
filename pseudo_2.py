@@ -143,6 +143,68 @@ class Encoder:
                          product_in_field(c[28:32], product_in_field(c[20:24], c[0:4], irreducible_pol),
                                           irreducible_pol)))
 
+    def inverse_matrix_f2(self, matrix):
+        irreducible_pol = BitArray(bin="0b10011")
+        #Since we checked the key, we know the determinant for this matrix is 1, so we only need the
+        #transposed cofactor matrix
+        #First get the elements in the right position:
+        matrix = self.sub_bytes_modify(matrix, BitArray())
+        matrix = [matrix[0:4], matrix[4:8], matrix[8:12], matrix[12:16]]
+
+        inverse_matrix = []
+        for i in range(len(matrix)):
+            for j in range(len(matrix[i])):
+                c = BitArray()
+                for i_2 in range(len(matrix)):
+                    if i_2 == i:
+                        continue
+                    for j_2 in range(len(matrix[i])):
+                        if j_2 == j:
+                            continue
+                        c += matrix[i_2][j_2: j_2 + 1]
+
+                #print("C:", c)
+                d_1 = d_2 = d_3 = d_4 = d_5 = d_6 = BitArray(bin="0b0")
+                if abs(c[0:1].int) == 1 and abs(c[4:5].int) == 1 and abs(c[8:9].int) == 1:
+                    d_1 = BitArray(bin = "0b1")
+                if abs(c[3:4].int) == 1 and abs(c[7:8].int) == 1 and abs(c[2:3].int) == 1:
+                    d_2 = BitArray(bin = "0b1")
+                if abs(c[1:2].int) == 1 and abs(c[5:6].int) == 1 and abs(c[6:7].int) == 1:
+                    d_3 = BitArray(bin = "0b1")
+                if abs(c[2:3].int) == 1 and abs(c[4:5].int) == 1 and abs(c[6:7].int) == 1:
+                    d_4 = BitArray(bin = "0b1")
+                if abs(c[1:2].int) == 1 and abs(c[3:4].int) == 1 and abs(c[8:9].int) == 1:
+                    d_5 = BitArray(bin = "0b1")
+                if abs(c[0:1].int) == 1 and abs(c[5:6].int) == 1 and abs(c[7:8].int) == 1:
+                    d_6 = BitArray(bin = "0b1")
+
+                all = [d_1, d_2, d_3, d_4, d_5, d_6]
+                #print(all)
+                count_not_null = 0
+                for a in all:
+                    if a.int != 0:
+                        count_not_null += 1
+                if count_not_null % 2 != 0:
+                    inverse_matrix += BitArray(bin = "0b1")
+                else:
+                    inverse_matrix += BitArray(bin="0b0")
+
+        #print("Pseudo_inverse:", inverse_matrix)
+        sb0 = inverse_matrix[0:4]
+        sb1 = inverse_matrix[4:8]
+        sb2 = inverse_matrix[8:12]
+        sb3 = inverse_matrix[12:16]
+        #print(sb0, sb1, sb2, sb3)
+        inverse_matrix = BitArray(bin="0b" + sb0[0:1].bin + sb1[0:1].bin + sb2[0:1].bin + sb3[0:1].bin) + \
+                           BitArray(bin="0b" + sb0[1:2].bin + sb1[1:2].bin + sb2[1:2].bin + sb3[1:2].bin) + \
+                           BitArray(bin="0b" + sb0[2:3].bin + sb1[2:3].bin + sb2[2:3].bin + sb3[2:3].bin) + \
+                           BitArray(bin="0b" + sb0[3:4].bin + sb1[3:4].bin + sb2[3:4].bin + sb3[3:4].bin)
+        print("Inverse:", inverse_matrix)
+        return inverse_matrix
+
+
+
+
     def inverse_matrix_f16(self, matrix):
         '''
         Returns the inverse of a matrix formed by 16 F16 elements
@@ -215,7 +277,8 @@ class Encoder:
                 inverse_matrix += product_in_field(cofactor_det, y0, irreducible_pol)
 
         inverse_matrix = self.transpose_chunk(inverse_matrix)
-        print(inverse_matrix)
+        #print(inverse_matrix)
+        return inverse_matrix
 
         #for i in range(len(matrix)):
         #    inverse_matrix.append([])
@@ -277,7 +340,12 @@ class Encoder:
         print("After shift rows 1:", encoded_chunk)
 
         #MIX ROWS 1:
-        encoded_chunk = self.row_mix(encoded_chunk, mix_rows_1_pol)
+        # Building the matrix
+        matrix = [[mix_rows_1_pol[8:12], BitArray(bin="0b0001"), mix_rows_1_pol[0:4], mix_rows_1_pol[4:8]],
+                  [mix_rows_1_pol[4:8], mix_rows_1_pol[8:12], BitArray(bin="0b0001"), mix_rows_1_pol[0:4]],
+                  [mix_rows_1_pol[0:4], mix_rows_1_pol[4:8], mix_rows_1_pol[8:12], BitArray(bin="0b0001")],
+                  [BitArray(bin="0b0001"), mix_rows_1_pol[0:4], mix_rows_1_pol[4:8], mix_rows_1_pol[8:12]]]
+        encoded_chunk = self.row_mix(encoded_chunk, matrix)
         print("After mix 1:", encoded_chunk)
 
         #ADD KEY
@@ -299,8 +367,12 @@ class Encoder:
         encoded_chunk = self.shift_rows(encoded_chunk)
         print("After shift rows 2:", encoded_chunk)
 
-        # MIX ROWS 1:
-        encoded_chunk = self.row_mix(encoded_chunk, mix_rows_2_pol)
+        # MIX ROWS 2:
+        matrix = [[mix_rows_2_pol[8:12], BitArray(bin="0b0001"), mix_rows_2_pol[0:4], mix_rows_2_pol[4:8]],
+                  [mix_rows_2_pol[4:8], mix_rows_2_pol[8:12], BitArray(bin="0b0001"), mix_rows_2_pol[0:4]],
+                  [mix_rows_2_pol[0:4], mix_rows_2_pol[4:8], mix_rows_2_pol[8:12], BitArray(bin="0b0001")],
+                  [BitArray(bin="0b0001"), mix_rows_2_pol[0:4], mix_rows_2_pol[4:8], mix_rows_2_pol[8:12]]]
+        encoded_chunk = self.row_mix(encoded_chunk, matrix)
         print("After mix 2:", encoded_chunk)
 
         return encoded_chunk
@@ -331,6 +403,39 @@ class Encoder:
                              [BitArray(bin="0b0001"), mix_rows_2_pol[0:4], mix_rows_2_pol[4:8], mix_rows_2_pol[8:12]]]
 
         mix_rows_1_matrix = self.inverse_matrix_f16(mix_rows_1_matrix)
+        mix_rows_1_matrix = [
+            [mix_rows_1_matrix[0:4], mix_rows_1_matrix[4:8], mix_rows_1_matrix[8:12], mix_rows_1_matrix[12:16]],
+            [mix_rows_1_matrix[16:20], mix_rows_1_matrix[20:24], mix_rows_1_matrix[24:28], mix_rows_1_matrix[28:32]],
+            [mix_rows_1_matrix[32:36], mix_rows_1_matrix[36:40], mix_rows_1_matrix[40:44], mix_rows_1_matrix[44:48]],
+            [mix_rows_1_matrix[48:52], mix_rows_1_matrix[52:56], mix_rows_1_matrix[56:60], mix_rows_1_matrix[60:64]]]
+
+        mix_rows_2_matrix = self.inverse_matrix_f16(mix_rows_2_matrix)
+        mix_rows_2_matrix = [[mix_rows_2_matrix[0:4], mix_rows_2_matrix[4:8], mix_rows_2_matrix[8:12], mix_rows_2_matrix[12:16]],
+                             [mix_rows_2_matrix[16:20], mix_rows_2_matrix[20:24], mix_rows_2_matrix[24:28], mix_rows_2_matrix[28:32]],
+                             [mix_rows_2_matrix[32:36], mix_rows_2_matrix[36:40], mix_rows_2_matrix[40:44], mix_rows_2_matrix[44:48]],
+                             [mix_rows_2_matrix[48:52], mix_rows_2_matrix[52:56], mix_rows_2_matrix[56:60], mix_rows_2_matrix[60:64]]]
+
+        sub_bytes_1_matrix = self.inverse_matrix_f2(sub_bytes_1_matrix)
+        sub_bytes_2_matrix = self.inverse_matrix_f2(sub_bytes_2_matrix)
+
+        #MIX ROWS 2:
+        decoded_chunk = self.row_mix(chunk, mix_rows_2_matrix)
+        print("After mix 2 decoding:", decoded_chunk)
+
+        #SHIFT ROWS 2:
+        decoded_chunk = self.unshift_rows(decoded_chunk)
+        print("After unshift rows 2 decoding:", decoded_chunk)
+
+        #SUB BYTES 2:
+        temp = BitArray()
+        for i in range(16):
+            to_decode = decoded_chunk[i * 4: i * 4 + 4]
+            to_decode.reverse()
+            result = self.sub_bytes(to_decode, sub_bytes_2_matrix, sub_bytes_2_add)
+            result.reverse()
+            temp += result
+        decoded_chunk = temp
+        print("After sub bytes 2 decoding:", decoded_chunk)
 
         return
 
@@ -376,13 +481,27 @@ class Encoder:
 
         return chunk
 
-    def row_mix(self, chunk, polynomial):
-        #Building the matrix
-        matrix = [[polynomial[8:12], BitArray(bin = "0b0001"), polynomial[0:4], polynomial[4:8]],
-                  [polynomial[4:8], polynomial[8:12], BitArray(bin="0b0001"), polynomial[0:4]],
-                  [polynomial[0:4], polynomial[4:8], polynomial[8:12], BitArray(bin="0b0001")],
-                  [BitArray(bin="0b0001"), polynomial[0:4], polynomial[4:8], polynomial[8:12]]]
+    def unshift_rows(self, chunk):
+        chunk = self.transpose_chunk(chunk)
 
+        temp = chunk[7 * 4:8 * 4]
+        chunk[5 * 4:8 * 4] = chunk[4 * 4:7 * 4]
+        chunk[4 * 4:5 * 4] = temp
+
+        temp = chunk[10 * 4:12 * 4]
+        chunk[10 * 4:12 * 4] = chunk[8 * 4:10 * 4]
+        chunk[8 * 4:10 * 4] = temp
+
+        temp = chunk[13 * 4:16 * 4]
+        chunk[15 * 4:16 * 4] = chunk[12 * 4:13 * 4]
+        chunk[12 * 4:15 * 4] = temp
+
+        # Transposing the result
+        chunk = self.transpose_chunk(chunk)
+
+        return chunk
+
+    def row_mix(self, chunk, matrix):
         irreducible_polynomial = BitArray(bin = "0b10011")
         result = BitArray()
         for i in range(4):
@@ -429,5 +548,5 @@ class Encoder:
 
 encoder = Encoder(BitArray(hex="0x94a55ae9b242a648"))
 #print("Result:", encoder.encode_chunk(BitArray(hex = "0x1234123412341234")))
-print("Result:", encoder.decode_chunk(BitArray(hex = "0x1234123412341234")))
+print("Result:", encoder.decode_chunk(encoder.encode_chunk(BitArray(hex = "0x1234123412341234"))))
 #print(encoder.encode_stream(BitArray(hex = "0x12341234123412341234123412341234")))
